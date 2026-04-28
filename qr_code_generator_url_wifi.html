@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QR코드 생성기 - URL / WiFi</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #e8f1ff, #f7f9fc);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      color: #222;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      background: #ffffff;
+      border-radius: 22px;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.12);
+      padding: 28px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      text-align: center;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+
+    .tab-button {
+      border: none;
+      border-radius: 14px;
+      padding: 13px 14px;
+      background: #eef2f7;
+      color: #333;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .tab-button.active {
+      background: #2563eb;
+      color: white;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.28);
+    }
+
+    .form-section {
+      display: none;
+    }
+
+    .form-section.active {
+      display: block;
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      margin: 14px 0 7px;
+      font-size: 14px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 13px 14px;
+      border: 1px solid #d4d9e2;
+      border-radius: 12px;
+      font-size: 15px;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      font-size: 14px;
+    }
+
+    .checkbox-row input {
+      width: auto;
+    }
+
+    .generate-button,
+    .download-button {
+      width: 100%;
+      border: none;
+      border-radius: 14px;
+      padding: 14px;
+      margin-top: 20px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .generate-button {
+      background: #111827;
+      color: white;
+    }
+
+    .generate-button:hover {
+      background: #000;
+      transform: translateY(-1px);
+    }
+
+    .download-button {
+      display: none;
+      background: #16a34a;
+      color: white;
+    }
+
+    .download-button:hover {
+      background: #15803d;
+    }
+
+    .qr-area {
+      margin-top: 24px;
+      padding: 22px;
+      border-radius: 18px;
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      min-height: 250px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    #qrcode {
+      background: white;
+      padding: 14px;
+      border-radius: 14px;
+    }
+
+    .hint {
+      color: #777;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .error {
+      display: none;
+      margin-top: 12px;
+      color: #dc2626;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      padding: 11px 13px;
+      border-radius: 12px;
+      font-size: 14px;
+    }
+
+    .note {
+      margin-top: 18px;
+      color: #666;
+      font-size: 13px;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 22px;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>QR코드 생성기</h1>
+    <p class="subtitle">URL QR코드와 WiFi 접속 QR코드를 만들 수 있습니다.</p>
+
+    <div class="tabs">
+      <button class="tab-button active" id="urlTab" onclick="changeMode('url')">URL 생성기</button>
+      <button class="tab-button" id="wifiTab" onclick="changeMode('wifi')">WiFi 생성기</button>
+    </div>
+
+    <section id="urlForm" class="form-section active">
+      <label for="urlInput">URL 주소</label>
+      <input id="urlInput" type="url" placeholder="예: https://example.com" />
+    </section>
+
+    <section id="wifiForm" class="form-section">
+      <label for="ssidInput">WiFi 이름, SSID</label>
+      <input id="ssidInput" type="text" placeholder="예: My WiFi" />
+
+      <label for="passwordInput">WiFi 비밀번호</label>
+      <input id="passwordInput" type="text" placeholder="비밀번호 입력" />
+
+      <label for="securityInput">보안 방식</label>
+      <select id="securityInput">
+        <option value="WPA">WPA/WPA2</option>
+        <option value="WEP">WEP</option>
+        <option value="nopass">비밀번호 없음</option>
+      </select>
+
+      <label class="checkbox-row">
+        <input id="hiddenInput" type="checkbox" />
+        숨겨진 네트워크
+      </label>
+    </section>
+
+    <div class="error" id="errorBox"></div>
+
+    <button class="generate-button" onclick="generateQRCode()">QR코드 생성</button>
+
+    <div class="qr-area">
+      <div id="qrcode">
+        <p class="hint">정보를 입력하고<br />QR코드 생성 버튼을 눌러주세요.</p>
+      </div>
+    </div>
+
+    <button class="download-button" id="downloadButton" onclick="downloadQRCode()">PNG로 다운로드</button>
+
+    <p class="note">
+      WiFi QR코드는 휴대폰 카메라로 스캔하면 네트워크 접속 화면이 나타납니다.
+    </p>
+  </main>
+
+  <script>
+    let currentMode = "url";
+
+    function changeMode(mode) {
+      currentMode = mode;
+
+      document.getElementById("urlTab").classList.toggle("active", mode === "url");
+      document.getElementById("wifiTab").classList.toggle("active", mode === "wifi");
+
+      document.getElementById("urlForm").classList.toggle("active", mode === "url");
+      document.getElementById("wifiForm").classList.toggle("active", mode === "wifi");
+
+      clearError();
+      resetQRCode();
+    }
+
+    function showError(message) {
+      const errorBox = document.getElementById("errorBox");
+      errorBox.textContent = message;
+      errorBox.style.display = "block";
+    }
+
+    function clearError() {
+      const errorBox = document.getElementById("errorBox");
+      errorBox.textContent = "";
+      errorBox.style.display = "none";
+    }
+
+    function resetQRCode() {
+      const qrBox = document.getElementById("qrcode");
+      qrBox.innerHTML = '<p class="hint">정보를 입력하고<br />QR코드 생성 버튼을 눌러주세요.</p>';
+      document.getElementById("downloadButton").style.display = "none";
+    }
+
+    function escapeWifiText(text) {
+      return text.replace(/\\/g, "\\\\")
+                 .replace(/;/g, "\\;")
+                 .replace(/,/g, "\\,")
+                 .replace(/:/g, "\\:")
+                 .replace(/"/g, '\\"');
+    }
+
+    function getQRCodeText() {
+      if (currentMode === "url") {
+        let url = document.getElementById("urlInput").value.trim();
+
+        if (!url) {
+          showError("URL 주소를 입력해주세요.");
+          return null;
+        }
+
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+          url = "https://" + url;
+        }
+
+        return url;
+      }
+
+      const ssid = document.getElementById("ssidInput").value.trim();
+      const password = document.getElementById("passwordInput").value;
+      const security = document.getElementById("securityInput").value;
+      const hidden = document.getElementById("hiddenInput").checked;
+
+      if (!ssid) {
+        showError("WiFi 이름, SSID를 입력해주세요.");
+        return null;
+      }
+
+      if (security !== "nopass" && !password) {
+        showError("WiFi 비밀번호를 입력해주세요. 비밀번호가 없다면 보안 방식을 '비밀번호 없음'으로 선택하세요.");
+        return null;
+      }
+
+      const safeSsid = escapeWifiText(ssid);
+      const safePassword = escapeWifiText(password);
+      const hiddenValue = hidden ? "true" : "false";
+
+      if (security === "nopass") {
+        return `WIFI:T:nopass;S:${safeSsid};H:${hiddenValue};;`;
+      }
+
+      return `WIFI:T:${security};S:${safeSsid};P:${safePassword};H:${hiddenValue};;`;
+    }
+
+    function generateQRCode() {
+      clearError();
+      const qrText = getQRCodeText();
+
+      if (!qrText) return;
+
+      const qrBox = document.getElementById("qrcode");
+      qrBox.innerHTML = "";
+
+      new QRCode(qrBox, {
+        text: qrText,
+        width: 220,
+        height: 220,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+
+      document.getElementById("downloadButton").style.display = "block";
+    }
+
+    function downloadQRCode() {
+      const qrBox = document.getElementById("qrcode");
+      const img = qrBox.querySelector("img");
+      const canvas = qrBox.querySelector("canvas");
+      let imageUrl = null;
+
+      if (img) {
+        imageUrl = img.src;
+      } else if (canvas) {
+        imageUrl = canvas.toDataURL("image/png");
+      }
+
+      if (!imageUrl) {
+        showError("다운로드할 QR코드가 없습니다.");
+        return;
+      }
+
+      const link = document.createElement("a");
+      link.href = imageUrl;
+      link.download = currentMode === "url" ? "url-qrcode.png" : "wifi-qrcode.png";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
+</body>
+</html>
