@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neat Clock Timer</title>
+  <style>
+    :root {
+      --bg-1: #101114;
+      --bg-2: #1d1f27;
+      --card: rgba(255, 255, 255, 0.08);
+      --card-strong: rgba(255, 255, 255, 0.13);
+      --text: #f7f7fb;
+      --muted: #aeb3c2;
+      --accent: #8fd3ff;
+      --accent-2: #c7a7ff;
+      --danger: #ff8f8f;
+      --shadow: 0 30px 80px rgba(0, 0, 0, 0.38);
+      --radius: 28px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "Pretendard", "Malgun Gothic", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 10%, rgba(143, 211, 255, 0.25), transparent 34%),
+        radial-gradient(circle at 90% 18%, rgba(199, 167, 255, 0.25), transparent 32%),
+        linear-gradient(135deg, var(--bg-1), var(--bg-2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .app {
+      width: min(760px, calc(100vw - 36px));
+      min-height: 650px;
+      display: block;
+      padding: 24px;
+      border-radius: 36px;
+      background: rgba(255, 255, 255, 0.075);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(24px);
+    }
+
+    .panel {
+      border-radius: var(--radius);
+      background: var(--card);
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      padding: 30px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.12), transparent 45%);
+      pointer-events: none;
+    }
+
+    .clock-panel {
+      min-height: 602px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: flex;
+    }
+
+    .switch-btn {
+      border: 1px solid rgba(255,255,255,0.11);
+      cursor: pointer;
+    }
+
+    .top-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .zoom-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text);
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .solo-time-wrap {
+      margin: 110px 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .logo-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: grid;
+      place-items: center;
+      color: #111;
+      font-weight: 900;
+      box-shadow: 0 16px 40px rgba(143, 211, 255, 0.22);
+    }
+
+    .mode-pill {
+      font-size: 13px;
+      color: var(--muted);
+      padding: 9px 13px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.18);
+      border: 1px solid rgba(255,255,255,0.11);
+    }
+
+    .time-wrap {
+      position: relative;
+      z-index: 1;
+      margin: 58px 0;
+    }
+
+    .date {
+      font-size: 20px;
+      color: var(--muted);
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+
+    .time {
+      font-size: clamp(72px, 10vw, 128px);
+      line-height: 0.9;
+      font-weight: 800;
+      letter-spacing: -0.08em;
+      text-shadow: 0 18px 60px rgba(0,0,0,0.38);
+    }
+
+    .seconds {
+      font-size: clamp(30px, 4vw, 52px);
+      color: var(--accent);
+      letter-spacing: -0.04em;
+      margin-left: 10px;
+    }
+
+    .sub-info {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .info-card {
+      padding: 18px;
+      border-radius: 22px;
+      background: rgba(0,0,0,0.16);
+      border: 1px solid rgba(255,255,255,0.09);
+    }
+
+    .info-label {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .info-value {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .timer-panel {
+      min-height: 602px;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    .timer-brand {
+      align-items: flex-start;
+    }
+
+    .section-title {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: -0.05em;
+    }
+
+    .section-desc {
+      position: relative;
+      z-index: 1;
+      color: var(--muted);
+      margin: -10px 0 8px;
+      font-size: 14px;
+    }
+
+    .timer-display {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+      aspect-ratio: 1 / 1;
+      width: min(100%, 360px);
+      margin: 0 auto;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle, rgba(255,255,255,0.08), rgba(255,255,255,0.02) 64%),
+        conic-gradient(from 0deg, var(--accent) var(--progress), rgba(255,255,255,0.12) 0);
+      box-shadow: inset 0 0 40px rgba(255,255,255,0.05), 0 25px 70px rgba(0,0,0,0.28);
+    }
+
+    .timer-display::after {
+      content: "";
+      position: absolute;
+      inset: 14px;
+      border-radius: 50%;
+      background: rgba(17, 18, 23, 0.88);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .timer-time {
+      position: relative;
+      z-index: 2;
+      font-size: clamp(44px, 6vw, 68px);
+      font-weight: 800;
+      letter-spacing: -0.06em;
+    }
+
+    .timer-state {
+      position: relative;
+      z-index: 2;
+      color: var(--muted);
+      margin-top: 8px;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .preset-row, .control-row {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    button {
+      border: 0;
+      color: var(--text);
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 700;
+      transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    .preset {
+      padding: 13px 10px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.09);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--muted);
+    }
+
+    .preset:hover {
+      background: rgba(255,255,255,0.14);
+      color: var(--text);
+    }
+
+    .main-btn {
+      grid-column: span 2;
+      padding: 17px 14px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #101114;
+      font-size: 16px;
+      box-shadow: 0 16px 40px rgba(143,211,255,0.18);
+    }
+
+    .ghost-btn {
+      padding: 17px 14px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.09);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .input-row {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .input-box {
+      background: rgba(0,0,0,0.18);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 18px;
+      padding: 12px;
+    }
+
+    .input-box label {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .input-box input {
+      width: 100%;
+      background: transparent;
+      border: 0;
+      outline: 0;
+      color: var(--text);
+      font-size: 22px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .done {
+      animation: pulse 1s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 rgba(255,143,143,0); }
+      50% { box-shadow: 0 0 55px rgba(255,143,143,0.38); }
+    }
+
+    @media (max-width: 900px) {
+      body { overflow: auto; padding: 18px 0; }
+      .app {
+        width: min(720px, calc(100vw - 36px));
+      }
+      .sub-info {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel clock-panel view active" id="clockView">
+      <div class="brand">
+        <div class="logo">
+          <div class="logo-mark">N</div>
+          <div>Neat Clock</div>
+        </div>
+        <div class="top-controls">
+          <button class="zoom-btn" id="zoomOutBtn">−</button>
+          <button class="zoom-btn" id="zoomInBtn">＋</button>
+          <button class="mode-pill switch-btn" id="toTimerBtn">타이머 보기</button>
+        </div>
+      </div>
+
+      <div class="time-wrap solo-time-wrap">
+        <div class="date" id="dateText">0000년 00월 00일</div>
+        <div>
+          <span class="time" id="timeText">00:00</span>
+          <span class="seconds" id="secondsText">00</span>
+        </div>
+      </div>
+
+      <div style="color: var(--muted); font-size: 13px; margin-top: -30px; margin-bottom: 18px; position: relative; z-index: 1;">
+        확대/축소 : Ctrl + 마우스 스크롤 또는 상단 ± 버튼
+      </div>
+
+      <div class="sub-info">
+        <div class="info-card">
+          <div class="info-label">요일</div>
+          <div class="info-value" id="dayText">-</div>
+        </div>
+        <div class="info-card">
+          <div class="info-label">표시 방식</div>
+          <div class="info-value">24시간</div>
+        </div>
+        <div class="info-card">
+          <div class="info-label">모드</div>
+          <div class="info-value">디지털 시계</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel timer-panel view" id="timerView">
+      <div class="brand timer-brand">
+        <div>
+          <h1 class="section-title">Timer</h1>
+          <p class="section-desc">필요한 순간에 바로 맞춰 쓰는 심플 타이머</p>
+        </div>
+        <div class="top-controls">
+          <button class="zoom-btn" id="timerZoomOutBtn">−</button>
+          <button class="zoom-btn" id="timerZoomInBtn">＋</button>
+          <button class="mode-pill switch-btn" id="toClockBtn">시계 보기</button>
+        </div>
+      </div>
+
+      <div class="timer-display" id="timerCircle" style="--progress: 0deg;">
+        <div>
+          <div class="timer-time" id="timerText">05:00</div>
+          <div class="timer-state" id="timerState">준비됨</div>
+        </div>
+      </div>
+
+      <div style="color: var(--muted); font-size: 13px; text-align: center; margin-top: -6px; position: relative; z-index: 1;">
+        확대/축소 : Ctrl + 마우스 스크롤 또는 상단 ± 버튼
+      </div>
+
+      <div class="input-row">
+        <div class="input-box">
+          <label>시간</label>
+          <input id="hoursInput" type="number" min="0" max="99" value="0" />
+        </div>
+        <div class="input-box">
+          <label>분</label>
+          <input id="minutesInput" type="number" min="0" max="59" value="5" />
+        </div>
+        <div class="input-box">
+          <label>초</label>
+          <input id="secondsInput" type="number" min="0" max="59" value="0" />
+        </div>
+      </div>
+
+      <div class="preset-row">
+        <button class="preset" data-seconds="60">1분</button>
+        <button class="preset" data-seconds="300">5분</button>
+        <button class="preset" data-seconds="600">10분</button>
+        <button class="preset" data-seconds="900">15분</button>
+        <button class="preset" data-seconds="1800">30분</button>
+        <button class="preset" data-seconds="3600">1시간</button>
+      </div>
+
+      <div class="control-row">
+        <button class="main-btn" id="startPauseBtn">시작</button>
+        <button class="ghost-btn" id="resetBtn">초기화</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const dateText = document.getElementById('dateText');
+    const timeText = document.getElementById('timeText');
+    const secondsText = document.getElementById('secondsText');
+    const dayText = document.getElementById('dayText');
+
+    const clockView = document.getElementById('clockView');
+    const timerView = document.getElementById('timerView');
+    const toTimerBtn = document.getElementById('toTimerBtn');
+    const toClockBtn = document.getElementById('toClockBtn');
+    const zoomInBtn = document.getElementById('zoomInBtn');
+    const zoomOutBtn = document.getElementById('zoomOutBtn');
+    const timerZoomInBtn = document.getElementById('timerZoomInBtn');
+    const timerZoomOutBtn = document.getElementById('timerZoomOutBtn');
+
+    let currentZoom = 1;
+
+    const timerText = document.getElementById('timerText');
+    const timerState = document.getElementById('timerState');
+    const timerCircle = document.getElementById('timerCircle');
+    const startPauseBtn = document.getElementById('startPauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const hoursInput = document.getElementById('hoursInput');
+    const minutesInput = document.getElementById('minutesInput');
+    const secondsInput = document.getElementById('secondsInput');
+    const presetButtons = document.querySelectorAll('.preset');
+
+    let totalSeconds = 300;
+    let remainingSeconds = 300;
+    let timerInterval = null;
+    let isRunning = false;
+
+    function pad(value) {
+      return String(value).padStart(2, '0');
+    }
+
+    function showView(viewName) {
+      clockView.classList.toggle('active', viewName === 'clock');
+      timerView.classList.toggle('active', viewName === 'timer');
+    }
+
+    function applyZoom() {
+      document.body.style.zoom = currentZoom;
+    }
+
+    function updateClock() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const date = now.getDate();
+      const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+
+      dateText.textContent = `${year}년 ${month}월 ${date}일`;
+      timeText.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      secondsText.textContent = pad(now.getSeconds());
+      dayText.textContent = dayNames[now.getDay()];
+    }
+
+    function secondsFromInputs() {
+      const h = Math.max(0, Number(hoursInput.value || 0));
+      const m = Math.max(0, Math.min(59, Number(minutesInput.value || 0)));
+      const s = Math.max(0, Math.min(59, Number(secondsInput.value || 0)));
+      return h * 3600 + m * 60 + s;
+    }
+
+    function setInputsFromSeconds(seconds) {
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
+      hoursInput.value = h;
+      minutesInput.value = m;
+      secondsInput.value = s;
+    }
+
+    function formatTimer(seconds) {
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
+      return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+    }
+
+    function renderTimer() {
+      timerText.textContent = formatTimer(remainingSeconds);
+      const progress = totalSeconds > 0 ? ((totalSeconds - remainingSeconds) / totalSeconds) * 360 : 0;
+      timerCircle.style.setProperty('--progress', `${progress}deg`);
+    }
+
+    function applyInputTime() {
+      const next = secondsFromInputs();
+      totalSeconds = next > 0 ? next : 1;
+      remainingSeconds = totalSeconds;
+      timerState.textContent = '준비됨';
+      timerCircle.classList.remove('done');
+      renderTimer();
+    }
+
+    function startTimer() {
+      if (remainingSeconds <= 0) applyInputTime();
+      isRunning = true;
+      startPauseBtn.textContent = '일시정지';
+      timerState.textContent = '진행 중';
+      timerCircle.classList.remove('done');
+
+      timerInterval = setInterval(() => {
+        remainingSeconds -= 1;
+        renderTimer();
+
+        if (remainingSeconds <= 0) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+          isRunning = false;
+          startPauseBtn.textContent = '시작';
+          timerState.textContent = '완료됨';
+          timerCircle.classList.add('done');
+        }
+      }, 1000);
+    }
+
+    function pauseTimer() {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      isRunning = false;
+      startPauseBtn.textContent = '계속';
+      timerState.textContent = '일시정지';
+    }
+
+    toTimerBtn.addEventListener('click', () => showView('timer'));
+
+    function zoomIn() {
+      currentZoom = Math.min(currentZoom + 0.1, 2);
+      applyZoom();
+    }
+
+    function zoomOut() {
+      currentZoom = Math.max(currentZoom - 0.1, 0.5);
+      applyZoom();
+    }
+
+    zoomInBtn.addEventListener('click', zoomIn);
+    zoomOutBtn.addEventListener('click', zoomOut);
+    timerZoomInBtn.addEventListener('click', zoomIn);
+    timerZoomOutBtn.addEventListener('click', zoomOut);
+    toClockBtn.addEventListener('click', () => showView('clock'));
+
+    startPauseBtn.addEventListener('click', () => {
+      if (isRunning) {
+        pauseTimer();
+      } else {
+        if (remainingSeconds === totalSeconds) applyInputTime();
+        startTimer();
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      isRunning = false;
+      startPauseBtn.textContent = '시작';
+      applyInputTime();
+    });
+
+    presetButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        isRunning = false;
+        startPauseBtn.textContent = '시작';
+        const seconds = Number(button.dataset.seconds);
+        totalSeconds = seconds;
+        remainingSeconds = seconds;
+        setInputsFromSeconds(seconds);
+        timerState.textContent = '준비됨';
+        timerCircle.classList.remove('done');
+        renderTimer();
+      });
+    });
+
+    [hoursInput, minutesInput, secondsInput].forEach(input => {
+      input.addEventListener('change', () => {
+        if (!isRunning) applyInputTime();
+      });
+    });
+
+    updateClock();
+    setInterval(updateClock, 1000);
+    renderTimer();
+  </script>
+</body>
+</html>
