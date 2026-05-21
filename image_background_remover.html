@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>이미지 배경 제거기</title>
+  <style>
+    :root {
+      --bg: #111827;
+      --card: #1f2937;
+      --card2: #243244;
+      --text: #f9fafb;
+      --muted: #9ca3af;
+      --accent: #60a5fa;
+      --danger: #fb7185;
+      --line: #374151;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1e3a8a 0%, var(--bg) 38%, #020617 100%);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      background: rgba(31, 41, 55, 0.92);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 28px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.38);
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+    }
+
+    header {
+      padding: 26px 30px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(26px, 4vw, 42px);
+      letter-spacing: -0.04em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 0;
+      min-height: 640px;
+    }
+
+    .panel {
+      padding: 24px;
+      border-right: 1px solid var(--line);
+      background: rgba(17, 24, 39, 0.44);
+    }
+
+    .dropzone {
+      border: 2px dashed #4b5563;
+      border-radius: 22px;
+      padding: 26px 18px;
+      text-align: center;
+      background: rgba(255,255,255,0.03);
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(96, 165, 250, 0.1);
+      transform: translateY(-1px);
+    }
+
+    .dropzone .icon {
+      font-size: 42px;
+      margin-bottom: 10px;
+    }
+
+    input[type="file"] { display: none; }
+
+    .control {
+      margin-top: 22px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255,255,255,0.035);
+    }
+
+    .control label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      margin-bottom: 10px;
+      color: #e5e7eb;
+    }
+
+    .value {
+      color: var(--accent);
+      font-weight: 700;
+      min-width: 38px;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 15px;
+      padding: 13px 15px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: 0.15s ease;
+      color: #0f172a;
+      background: var(--accent);
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    button:disabled {
+      opacity: 0.48;
+      cursor: not-allowed;
+    }
+
+    .secondary {
+      background: #e5e7eb;
+    }
+
+    .danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    .note {
+      margin-top: 18px;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 13px;
+    }
+
+    .stage {
+      padding: 24px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 18px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      background: var(--card2);
+      color: var(--text);
+      border: 1px solid var(--line);
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+    }
+
+    .tab.active {
+      background: var(--accent);
+      color: #0f172a;
+      border-color: var(--accent);
+    }
+
+    .viewer {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      min-height: 0;
+    }
+
+    .preview {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      overflow: hidden;
+      background-color: #111827;
+      background-image:
+        linear-gradient(45deg, rgba(255,255,255,.08) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(255,255,255,.08) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, rgba(255,255,255,.08) 75%),
+        linear-gradient(-45deg, transparent 75%, rgba(255,255,255,.08) 75%);
+      background-size: 24px 24px;
+      background-position: 0 0, 0 12px, 12px -12px, -12px 0px;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .preview-title {
+      padding: 12px 14px;
+      background: rgba(2, 6, 23, 0.72);
+      border-bottom: 1px solid var(--line);
+      color: #e5e7eb;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .canvas-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      min-height: 420px;
+    }
+
+    canvas {
+      max-width: 100%;
+      max-height: 520px;
+      object-fit: contain;
+      border-radius: 10px;
+      box-shadow: 0 8px 26px rgba(0,0,0,0.28);
+    }
+
+    .empty {
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.7;
+      padding: 20px;
+    }
+
+    .pill {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(96,165,250,.15);
+      color: #bfdbfe;
+      font-size: 12px;
+    }
+
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; }
+      .panel { border-right: 0; border-bottom: 1px solid var(--line); }
+      .viewer { grid-template-columns: 1fr; }
+      .canvas-wrap { min-height: 300px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>이미지 배경 제거기</h1>
+      <div class="subtitle">흰색·단색 배경을 투명하게 바꾸는 오프라인 HTML 도구입니다. 결과물은 PNG로 저장됩니다.</div>
+    </header>
+
+    <main>
+      <aside class="panel">
+        <div class="dropzone" id="dropzone">
+          <div class="icon">🖼️</div>
+          <strong>이미지를 여기에 끌어오거나 클릭</strong>
+          <div class="note">JPG, PNG, WEBP 지원</div>
+          <input type="file" id="fileInput" accept="image/*" />
+        </div>
+
+        <div class="control">
+          <label>배경 기준 밝기 <span class="value" id="brightnessValue">245</span></label>
+          <input type="range" id="brightness" min="180" max="255" value="245" />
+          <div class="note">흰 배경이면 높게, 회색/아이보리 배경이면 낮게 조절하세요.</div>
+        </div>
+
+        <div class="control">
+          <label>제거 강도 <span class="value" id="toleranceValue">28</span></label>
+          <input type="range" id="tolerance" min="0" max="100" value="28" />
+          <div class="note">배경이 남으면 올리고, 물체까지 지워지면 낮추세요.</div>
+        </div>
+
+        <div class="control">
+          <label>가장자리 부드럽게 <span class="value" id="featherValue">18</span></label>
+          <input type="range" id="feather" min="0" max="80" value="18" />
+          <div class="note">머리카락·제품 테두리처럼 경계가 거칠 때 올리면 자연스럽습니다.</div>
+        </div>
+
+        <div class="row">
+          <button id="removeBtn" disabled>배경 제거</button>
+          <button id="downloadBtn" class="secondary" disabled>PNG 저장</button>
+        </div>
+        <div class="row">
+          <button id="resetBtn" class="danger" disabled>초기화</button>
+          <button id="sampleWhiteBtn" class="secondary" disabled>흰 배경 자동</button>
+        </div>
+
+        <div class="note">
+          ※ AI 방식이 아니라 픽셀 색상 기준 제거 방식입니다.<br />
+          흰색·밝은 단색 배경, 제품사진, 문서 이미지에 특히 잘 맞습니다.
+        </div>
+      </aside>
+
+      <section class="stage">
+        <div class="tabs">
+          <span class="tab active">원본 / 결과 비교</span>
+          <span class="tab">오프라인 실행</span>
+          <span class="tab">광고 없음</span>
+        </div>
+
+        <div class="viewer">
+          <div class="preview">
+            <div class="preview-title">원본 이미지</div>
+            <div class="canvas-wrap" id="originalWrap">
+              <div class="empty">이미지를 업로드하면<br />여기에 원본이 표시됩니다.<br /><span class="pill">드래그 앤 드롭 가능</span></div>
+            </div>
+          </div>
+
+          <div class="preview">
+            <div class="preview-title">배경 제거 결과</div>
+            <div class="canvas-wrap" id="resultWrap">
+              <div class="empty">배경 제거 버튼을 누르면<br />투명 PNG 결과가 표시됩니다.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const dropzone = document.getElementById('dropzone');
+    const originalWrap = document.getElementById('originalWrap');
+    const resultWrap = document.getElementById('resultWrap');
+    const removeBtn = document.getElementById('removeBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const sampleWhiteBtn = document.getElementById('sampleWhiteBtn');
+
+    const brightness = document.getElementById('brightness');
+    const tolerance = document.getElementById('tolerance');
+    const feather = document.getElementById('feather');
+    const brightnessValue = document.getElementById('brightnessValue');
+    const toleranceValue = document.getElementById('toleranceValue');
+    const featherValue = document.getElementById('featherValue');
+
+    let originalCanvas = null;
+    let resultCanvas = null;
+    let originalImageData = null;
+    let fileName = 'background_removed.png';
+
+    function syncValues() {
+      brightnessValue.textContent = brightness.value;
+      toleranceValue.textContent = tolerance.value;
+      featherValue.textContent = feather.value;
+    }
+
+    [brightness, tolerance, feather].forEach(slider => {
+      slider.addEventListener('input', () => {
+        syncValues();
+        if (originalImageData && resultCanvas) removeBackground();
+      });
+    });
+    syncValues();
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+
+    dropzone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      handleFile(e.dataTransfer.files[0]);
+    });
+
+    function handleFile(file) {
+      if (!file || !file.type.startsWith('image/')) {
+        alert('이미지 파일을 선택해주세요.');
+        return;
+      }
+
+      fileName = file.name.replace(/\.[^.]+$/, '') + '_배경제거.png';
+      const reader = new FileReader();
+      reader.onload = event => {
+        const img = new Image();
+        img.onload = () => loadImageToCanvas(img);
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function loadImageToCanvas(img) {
+      originalCanvas = document.createElement('canvas');
+      const maxSide = 2200;
+      let w = img.width;
+      let h = img.height;
+
+      if (Math.max(w, h) > maxSide) {
+        const ratio = maxSide / Math.max(w, h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+
+      originalCanvas.width = w;
+      originalCanvas.height = h;
+      const ctx = originalCanvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0, w, h);
+      originalImageData = ctx.getImageData(0, 0, w, h);
+
+      originalWrap.innerHTML = '';
+      originalWrap.appendChild(originalCanvas);
+
+      resultWrap.innerHTML = '<div class="empty">준비 완료!<br />배경 제거 버튼을 눌러주세요.</div>';
+      removeBtn.disabled = false;
+      resetBtn.disabled = false;
+      sampleWhiteBtn.disabled = false;
+      downloadBtn.disabled = true;
+    }
+
+    function removeBackground() {
+      if (!originalImageData) return;
+
+      const w = originalImageData.width;
+      const h = originalImageData.height;
+      resultCanvas = document.createElement('canvas');
+      resultCanvas.width = w;
+      resultCanvas.height = h;
+      const ctx = resultCanvas.getContext('2d');
+      const output = new ImageData(new Uint8ClampedArray(originalImageData.data), w, h);
+      const data = output.data;
+
+      const baseBright = Number(brightness.value);
+      const tol = Number(tolerance.value);
+      const soft = Number(feather.value);
+      const threshold = Math.max(0, baseBright - tol);
+      const softStart = Math.max(0, threshold - soft);
+
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const avg = (r + g + b) / 3;
+        const saturation = max - min;
+
+        // 밝고 채도가 낮은 영역을 배경 후보로 판단
+        const isLowSaturation = saturation < 42 + tol * 0.35;
+        const whiteness = avg - saturation * 0.55;
+
+        if (isLowSaturation && whiteness >= threshold) {
+          data[i + 3] = 0;
+        } else if (isLowSaturation && whiteness > softStart) {
+          const ratio = (whiteness - softStart) / Math.max(1, threshold - softStart);
+          data[i + 3] = Math.round(data[i + 3] * (1 - ratio));
+        }
+      }
+
+      ctx.putImageData(output, 0, 0);
+      resultWrap.innerHTML = '';
+      resultWrap.appendChild(resultCanvas);
+      downloadBtn.disabled = false;
+    }
+
+    removeBtn.addEventListener('click', removeBackground);
+
+    sampleWhiteBtn.addEventListener('click', () => {
+      brightness.value = 248;
+      tolerance.value = 34;
+      feather.value = 22;
+      syncValues();
+      if (originalImageData) removeBackground();
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      if (!resultCanvas) return;
+      const link = document.createElement('a');
+      link.download = fileName;
+      link.href = resultCanvas.toDataURL('image/png');
+      link.click();
+    });
+
+    resetBtn.addEventListener('click', () => {
+      originalCanvas = null;
+      resultCanvas = null;
+      originalImageData = null;
+      fileInput.value = '';
+      originalWrap.innerHTML = '<div class="empty">이미지를 업로드하면<br />여기에 원본이 표시됩니다.<br /><span class="pill">드래그 앤 드롭 가능</span></div>';
+      resultWrap.innerHTML = '<div class="empty">배경 제거 버튼을 누르면<br />투명 PNG 결과가 표시됩니다.</div>';
+      removeBtn.disabled = true;
+      downloadBtn.disabled = true;
+      resetBtn.disabled = true;
+      sampleWhiteBtn.disabled = true;
+    });
+  </script>
+</body>
+</html>
