@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>편리한 PDF 뷰어</title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #f3f6fb;
+      --panel: #ffffff;
+      --text: #1f2937;
+      --muted: #64748b;
+      --line: #dbe3ef;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --soft: #eaf1ff;
+      --danger: #ef4444;
+      --shadow: 0 14px 35px rgba(15, 23, 42, 0.12);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: "Pretendard", "Segoe UI", "Malgun Gothic", AppleSDGothicNeo, sans-serif;
+      background: radial-gradient(circle at top left, #dbeafe 0, transparent 34%),
+                  linear-gradient(135deg, #f8fbff 0%, #eef4ff 50%, #f6f8fb 100%);
+      color: var(--text);
+    }
+
+    body.dark {
+      --bg: #0f172a;
+      --panel: #111827;
+      --text: #f9fafb;
+      --muted: #a1a8b8;
+      --line: #273447;
+      --primary: #60a5fa;
+      --primary-dark: #3b82f6;
+      --soft: #172554;
+      --shadow: 0 14px 35px rgba(0, 0, 0, 0.35);
+      background: radial-gradient(circle at top left, #1e3a8a 0, transparent 30%),
+                  linear-gradient(135deg, #0f172a 0%, #111827 60%, #020617 100%);
+    }
+
+    header {
+      padding: 18px 22px 12px;
+    }
+
+    .app-title {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .title-block h1 {
+      margin: 0;
+      font-size: clamp(22px, 3vw, 34px);
+      letter-spacing: -0.04em;
+    }
+
+    .title-block p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .kbd-hint {
+      color: var(--muted);
+      font-size: 13px;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid var(--line);
+      padding: 9px 12px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    body.dark .kbd-hint {
+      background: rgba(15, 23, 42, 0.45);
+    }
+
+    main {
+      width: min(1280px, calc(100% - 28px));
+      margin: 0 auto 24px;
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 9px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      background: color-mix(in srgb, var(--panel) 92%, transparent);
+      backdrop-filter: blur(14px);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 3px;
+      border-radius: 14px;
+      background: color-mix(in srgb, var(--soft) 58%, transparent);
+      border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+    }
+
+    button, .file-label, input, select {
+      font-family: inherit;
+      font-size: 14px;
+    }
+
+    button, .file-label {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 8px 11px;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.12s ease, background 0.12s ease, border 0.12s ease;
+    }
+
+    button:hover, .file-label:hover {
+      transform: translateY(-1px);
+      border-color: color-mix(in srgb, var(--primary) 70%, var(--line));
+    }
+
+    button:active, .file-label:active {
+      transform: translateY(0);
+    }
+
+    button.primary, .file-label.primary {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+      font-weight: 700;
+    }
+
+    button.primary:hover, .file-label.primary:hover {
+      background: var(--primary-dark);
+      border-color: var(--primary-dark);
+    }
+
+    button.danger {
+      color: #fff;
+      background: var(--danger);
+      border-color: var(--danger);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .page-input {
+      width: 68px;
+      height: 38px;
+      padding: 8px;
+      text-align: center;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      color: var(--text);
+    }
+
+    .search-input {
+      width: 190px;
+      height: 38px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      color: var(--text);
+    }
+
+    select {
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      color: var(--text);
+      padding: 0 8px;
+      cursor: pointer;
+    }
+
+    .status {
+      flex: 1 1 230px;
+      min-width: 170px;
+      font-size: 13px;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding: 0 8px;
+    }
+
+    .viewer-wrap {
+      display: grid;
+      grid-template-columns: 250px 1fr;
+      gap: 14px;
+      margin-top: 14px;
+      min-height: 70vh;
+    }
+
+    aside {
+      border: 1px solid var(--line);
+      background: color-mix(in srgb, var(--panel) 92%, transparent);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      overflow: hidden;
+    }
+
+    .side-title {
+      font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .info-card {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: color-mix(in srgb, var(--soft) 42%, transparent);
+      margin-bottom: 10px;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 13px;
+    }
+
+    .thumbnail-list {
+      height: calc(70vh - 150px);
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .thumb {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 8px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--panel);
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .thumb:hover {
+      border-color: var(--primary);
+    }
+
+    .thumb.active {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+    }
+
+    .thumb canvas {
+      width: 44px;
+      height: auto;
+      background: #fff;
+      border-radius: 5px;
+      border: 1px solid #d1d5db;
+    }
+
+    .thumb span {
+      font-size: 13px;
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .viewer {
+      position: relative;
+      border: 1px solid var(--line);
+      background: color-mix(in srgb, var(--panel) 88%, transparent);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      min-height: 70vh;
+      overflow: auto;
+      padding: 24px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .drop-zone {
+      width: min(680px, 100%);
+      min-height: 430px;
+      border: 2px dashed color-mix(in srgb, var(--primary) 48%, var(--line));
+      border-radius: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 30px;
+      color: var(--muted);
+      background: color-mix(in srgb, var(--soft) 50%, transparent);
+    }
+
+    .drop-zone.dragover {
+      background: color-mix(in srgb, var(--primary) 14%, var(--soft));
+      border-color: var(--primary);
+    }
+
+    .drop-icon {
+      font-size: 56px;
+      margin-bottom: 10px;
+    }
+
+    .drop-zone h2 {
+      margin: 0 0 8px;
+      color: var(--text);
+      font-size: 24px;
+      letter-spacing: -0.03em;
+    }
+
+    .drop-zone p {
+      margin: 5px 0;
+      line-height: 1.55;
+    }
+
+    .canvas-shell {
+      display: none;
+      position: relative;
+      max-width: 100%;
+      transform-origin: top center;
+    }
+
+    #pdfCanvas {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.18);
+    }
+
+    .loading {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .spinner {
+      width: 15px;
+      height: 15px;
+      border-radius: 999px;
+      border: 2px solid var(--line);
+      border-top-color: var(--primary);
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .notice {
+      margin-top: 11px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      transform: translateX(-50%) translateY(120px);
+      max-width: min(560px, calc(100% - 28px));
+      padding: 12px 16px;
+      background: #111827;
+      color: white;
+      border-radius: 999px;
+      box-shadow: var(--shadow);
+      font-size: 14px;
+      z-index: 99;
+      transition: transform 0.2s ease;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .hidden-frame {
+      position: fixed;
+      width: 1px;
+      height: 1px;
+      right: 0;
+      bottom: 0;
+      border: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @media (max-width: 940px) {
+      .viewer-wrap {
+        grid-template-columns: 1fr;
+      }
+
+      aside {
+        order: 2;
+      }
+
+      .viewer {
+        order: 1;
+      }
+
+      .thumbnail-list {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        height: auto;
+        padding-bottom: 4px;
+      }
+
+      .thumb {
+        min-width: 95px;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .thumb canvas {
+        width: 50px;
+      }
+
+      .kbd-hint {
+        display: none;
+      }
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      header, .toolbar, aside, .drop-zone, .loading {
+        display: none !important;
+      }
+
+      main, .viewer-wrap, .viewer {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        display: block;
+        border: 0;
+        box-shadow: none;
+        min-height: auto;
+        overflow: visible;
+      }
+
+      .canvas-shell {
+        display: block !important;
+      }
+
+      #pdfCanvas {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-shadow: none;
+        border-radius: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="app-title">
+      <div class="title-block">
+        <h1>편리한 PDF 뷰어</h1>
+        <p>PDF 열기, 보기, 검색, 회전, 확대/축소, 인쇄까지 한 번에</p>
+      </div>
+      <div class="kbd-hint">단축키: ←/→ 페이지 · Ctrl+P 인쇄 · +/- 확대</div>
+    </div>
+  </header>
+
+  <main>
+    <section class="toolbar" aria-label="PDF 도구 모음">
+      <div class="toolbar-group">
+        <label class="file-label primary" for="fileInput">PDF 열기</label>
+        <input id="fileInput" type="file" accept="application/pdf,.pdf" />
+        <button id="resetBtn" type="button">초기화</button>
+      </div>
+
+      <div class="toolbar-group">
+        <button id="prevBtn" type="button" disabled>이전</button>
+        <input id="pageInput" class="page-input" type="number" min="1" value="1" disabled />
+        <span id="pageCountText" style="font-size: 13px; color: var(--muted);">/ 0</span>
+        <button id="nextBtn" type="button" disabled>다음</button>
+      </div>
+
+      <div class="toolbar-group">
+        <button id="zoomOutBtn" type="button" disabled>-</button>
+        <select id="zoomSelect" disabled>
+          <option value="0.5">50%</option>
+          <option value="0.75">75%</option>
+          <option value="1" selected>100%</option>
+          <option value="1.25">125%</option>
+          <option value="1.5">150%</option>
+          <option value="2">200%</option>
+          <option value="fit">폭 맞춤</option>
+        </select>
+        <button id="zoomInBtn" type="button" disabled>+</button>
+      </div>
+
+      <div class="toolbar-group">
+        <button id="rotateBtn" type="button" disabled>회전</button>
+        <button id="fullscreenBtn" type="button" disabled>전체화면</button>
+      </div>
+
+      <div class="toolbar-group">
+        <input id="searchInput" class="search-input" type="search" placeholder="PDF 안에서 검색" disabled />
+        <button id="searchBtn" type="button" disabled>찾기</button>
+      </div>
+
+      <div class="toolbar-group">
+        <button id="printBtn" class="primary" type="button" disabled>전체 인쇄</button>
+        <button id="printPageBtn" type="button" disabled>현재 페이지만</button>
+      </div>
+
+      <button id="darkBtn" type="button">다크모드</button>
+
+      <div id="status" class="status">PDF 파일을 열어주세요.</div>
+    </section>
+
+    <section class="viewer-wrap">
+      <aside>
+        <div class="side-title">문서 정보</div>
+        <div id="docInfo" class="info-card">
+          아직 열린 PDF가 없습니다.<br />
+          파일을 선택하거나 오른쪽 영역에 끌어다 놓으세요.
+        </div>
+
+        <div class="side-title">페이지 미리보기</div>
+        <div id="thumbnailList" class="thumbnail-list"></div>
+      </aside>
+
+      <section id="viewer" class="viewer">
+        <div id="dropZone" class="drop-zone">
+          <div>
+            <div class="drop-icon">📄</div>
+            <h2>PDF 파일을 여기에 놓으세요</h2>
+            <p>또는 위쪽의 <b>PDF 열기</b> 버튼을 눌러 파일을 선택하세요.</p>
+            <p class="notice">
+              이 파일은 내 컴퓨터 브라우저에서만 열립니다. 서버로 업로드되지 않습니다.<br />
+              인쇄는 원본 PDF 전체 인쇄와 현재 페이지만 인쇄를 지원합니다.
+            </p>
+          </div>
+        </div>
+
+        <div id="canvasShell" class="canvas-shell">
+          <canvas id="pdfCanvas"></canvas>
+        </div>
+
+        <div id="loading" class="loading">
+          <div class="spinner"></div>
+          <span>불러오는 중...</span>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <iframe id="printFrame" class="hidden-frame" title="print-frame"></iframe>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+    const els = {
+      fileInput: document.getElementById("fileInput"),
+      resetBtn: document.getElementById("resetBtn"),
+      prevBtn: document.getElementById("prevBtn"),
+      nextBtn: document.getElementById("nextBtn"),
+      pageInput: document.getElementById("pageInput"),
+      pageCountText: document.getElementById("pageCountText"),
+      zoomOutBtn: document.getElementById("zoomOutBtn"),
+      zoomInBtn: document.getElementById("zoomInBtn"),
+      zoomSelect: document.getElementById("zoomSelect"),
+      rotateBtn: document.getElementById("rotateBtn"),
+      fullscreenBtn: document.getElementById("fullscreenBtn"),
+      printBtn: document.getElementById("printBtn"),
+      printPageBtn: document.getElementById("printPageBtn"),
+      searchInput: document.getElementById("searchInput"),
+      searchBtn: document.getElementById("searchBtn"),
+      darkBtn: document.getElementById("darkBtn"),
+      status: document.getElementById("status"),
+      docInfo: document.getElementById("docInfo"),
+      thumbnailList: document.getElementById("thumbnailList"),
+      viewer: document.getElementById("viewer"),
+      dropZone: document.getElementById("dropZone"),
+      canvasShell: document.getElementById("canvasShell"),
+      canvas: document.getElementById("pdfCanvas"),
+      loading: document.getElementById("loading"),
+      printFrame: document.getElementById("printFrame"),
+      toast: document.getElementById("toast")
+    };
+
+    const state = {
+      pdfDoc: null,
+      file: null,
+      fileUrl: null,
+      fileName: "",
+      pageNum: 1,
+      pageCount: 0,
+      scale: 1,
+      rotation: 0,
+      rendering: false,
+      pendingPage: null,
+      textCache: new Map(),
+      lastSearch: "",
+      searchPage: 0
+    };
+
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => {
+        els.toast.classList.remove("show");
+      }, 2400);
+    }
+
+    function setLoading(isLoading) {
+      els.loading.style.display = isLoading ? "flex" : "none";
+    }
+
+    function setStatus(message) {
+      els.status.textContent = message;
+    }
+
+    function formatBytes(bytes) {
+      if (!bytes && bytes !== 0) return "-";
+      const units = ["B", "KB", "MB", "GB"];
+      let value = bytes;
+      let unit = 0;
+      while (value >= 1024 && unit < units.length - 1) {
+        value /= 1024;
+        unit++;
+      }
+      return `${value.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
+    }
+
+    function enableControls(enabled) {
+      [
+        els.prevBtn, els.nextBtn, els.pageInput, els.zoomOutBtn, els.zoomInBtn,
+        els.zoomSelect, els.rotateBtn, els.fullscreenBtn, els.printBtn,
+        els.printPageBtn, els.searchInput, els.searchBtn
+      ].forEach(el => el.disabled = !enabled);
+    }
+
+    function updatePageControls() {
+      els.pageInput.value = state.pageNum;
+      els.pageInput.max = state.pageCount || 1;
+      els.pageCountText.textContent = `/ ${state.pageCount}`;
+      els.prevBtn.disabled = !state.pdfDoc || state.pageNum <= 1;
+      els.nextBtn.disabled = !state.pdfDoc || state.pageNum >= state.pageCount;
+      [...els.thumbnailList.querySelectorAll(".thumb")].forEach(btn => {
+        btn.classList.toggle("active", Number(btn.dataset.page) === state.pageNum);
+      });
+    }
+
+    function getFitWidthScale(pageViewportWidth) {
+      const horizontalPadding = 54;
+      const available = Math.max(260, els.viewer.clientWidth - horizontalPadding);
+      return Math.min(3, Math.max(0.35, available / pageViewportWidth));
+    }
+
+    async function renderPage(num) {
+      if (!state.pdfDoc) return;
+
+      if (state.rendering) {
+        state.pendingPage = num;
+        return;
+      }
+
+      state.rendering = true;
+      setLoading(true);
+
+      try {
+        const page = await state.pdfDoc.getPage(num);
+        const baseViewport = page.getViewport({ scale: 1, rotation: state.rotation });
+        const selectedZoom = els.zoomSelect.value;
+
+        if (selectedZoom === "fit") {
+          state.scale = getFitWidthScale(baseViewport.width);
+        }
+
+        const viewport = page.getViewport({ scale: state.scale, rotation: state.rotation });
+        const context = els.canvas.getContext("2d", { alpha: false });
+        const outputScale = window.devicePixelRatio || 1;
+
+        els.canvas.width = Math.floor(viewport.width * outputScale);
+        els.canvas.height = Math.floor(viewport.height * outputScale);
+        els.canvas.style.width = `${Math.floor(viewport.width)}px`;
+        els.canvas.style.height = `${Math.floor(viewport.height)}px`;
+
+        const transform = outputScale !== 1
+          ? [outputScale, 0, 0, outputScale, 0, 0]
+          : null;
+
+        await page.render({
+          canvasContext: context,
+          viewport,
+          transform
+        }).promise;
+
+        els.dropZone.style.display = "none";
+        els.canvasShell.style.display = "block";
+        state.pageNum = num;
+
+        updatePageControls();
+        setStatus(`${state.fileName} · ${state.pageNum}/${state.pageCount}쪽 · ${Math.round(state.scale * 100)}%`);
+
+        const activeThumb = els.thumbnailList.querySelector(`.thumb[data-page="${state.pageNum}"]`);
+        if (activeThumb) {
+          activeThumb.scrollIntoView({ block: "nearest", inline: "nearest" });
+        }
+      } catch (error) {
+        console.error(error);
+        showToast("페이지를 표시하는 중 문제가 생겼습니다.");
+      } finally {
+        state.rendering = false;
+        setLoading(false);
+
+        if (state.pendingPage !== null) {
+          const nextPage = state.pendingPage;
+          state.pendingPage = null;
+          renderPage(nextPage);
+        }
+      }
+    }
+
+    async function loadPdf(file) {
+      if (!file || file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+        showToast("PDF 파일만 열 수 있습니다.");
+        return;
+      }
+
+      setLoading(true);
+      enableControls(false);
+      els.thumbnailList.innerHTML = "";
+
+      try {
+        if (state.fileUrl) {
+          URL.revokeObjectURL(state.fileUrl);
+        }
+
+        state.file = file;
+        state.fileUrl = URL.createObjectURL(file);
+        state.fileName = file.name;
+        state.pageNum = 1;
+        state.rotation = 0;
+        state.scale = 1;
+        state.textCache.clear();
+        state.lastSearch = "";
+        state.searchPage = 0;
+        els.searchInput.value = "";
+        els.zoomSelect.value = "1";
+
+        const buffer = await file.arrayBuffer();
+        state.pdfDoc = await pdfjsLib.getDocument({ data: buffer }).promise;
+        state.pageCount = state.pdfDoc.numPages;
+
+        enableControls(true);
+        els.docInfo.innerHTML = `
+          <b>${escapeHtml(file.name)}</b><br />
+          페이지: ${state.pageCount}쪽<br />
+          파일 크기: ${formatBytes(file.size)}<br />
+          마지막 수정: ${new Date(file.lastModified).toLocaleString("ko-KR")}
+        `;
+
+        await renderPage(1);
+        createThumbnails();
+        showToast("PDF를 열었습니다.");
+      } catch (error) {
+        console.error(error);
+        showToast("PDF를 열 수 없습니다. 파일이 손상되었거나 암호가 걸렸을 수 있습니다.");
+        resetViewer(false);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    async function createThumbnails() {
+      els.thumbnailList.innerHTML = "";
+      const maxThumbs = Math.min(state.pageCount, 80);
+
+      for (let i = 1; i <= maxThumbs; i++) {
+        const btn = document.createElement("button");
+        btn.className = "thumb";
+        btn.type = "button";
+        btn.dataset.page = i;
+
+        const canvas = document.createElement("canvas");
+        const label = document.createElement("span");
+        label.textContent = `${i}쪽`;
+
+        btn.append(canvas, label);
+        btn.addEventListener("click", () => queueRenderPage(i));
+        els.thumbnailList.appendChild(btn);
+
+        renderThumbnail(i, canvas);
+      }
+
+      if (state.pageCount > maxThumbs) {
+        const info = document.createElement("div");
+        info.className = "info-card";
+        info.textContent = `페이지가 많아서 미리보기는 처음 ${maxThumbs}쪽까지만 표시합니다.`;
+        els.thumbnailList.appendChild(info);
+      }
+
+      updatePageControls();
+    }
+
+    async function renderThumbnail(pageNum, canvas) {
+      try {
+        const page = await state.pdfDoc.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 0.16 });
+        const context = canvas.getContext("2d", { alpha: false });
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
+        await page.render({ canvasContext: context, viewport }).promise;
+      } catch (error) {
+        console.warn("thumbnail error", error);
+      }
+    }
+
+    function queueRenderPage(num) {
+      if (!state.pdfDoc) return;
+      const target = Math.min(Math.max(Number(num), 1), state.pageCount);
+      renderPage(target);
+    }
+
+    function goPrev() {
+      if (state.pageNum <= 1) return;
+      queueRenderPage(state.pageNum - 1);
+    }
+
+    function goNext() {
+      if (state.pageNum >= state.pageCount) return;
+      queueRenderPage(state.pageNum + 1);
+    }
+
+    function zoomBy(delta) {
+      if (!state.pdfDoc) return;
+      const nextScale = Math.min(3, Math.max(0.35, state.scale + delta));
+      state.scale = nextScale;
+      els.zoomSelect.value = String(closestPreset(nextScale));
+      if (!["0.5", "0.75", "1", "1.25", "1.5", "2"].includes(els.zoomSelect.value)) {
+        const custom = document.createElement("option");
+        custom.value = String(nextScale);
+        custom.textContent = `${Math.round(nextScale * 100)}%`;
+        custom.selected = true;
+        els.zoomSelect.appendChild(custom);
+      }
+      renderPage(state.pageNum);
+    }
+
+    function closestPreset(scale) {
+      const presets = [0.5, 0.75, 1, 1.25, 1.5, 2];
+      return presets.reduce((best, current) => {
+        return Math.abs(current - scale) < Math.abs(best - scale) ? current : best;
+      }, presets[0]);
+    }
+
+    async function getPageText(pageNumber) {
+      if (state.textCache.has(pageNumber)) {
+        return state.textCache.get(pageNumber);
+      }
+
+      const page = await state.pdfDoc.getPage(pageNumber);
+      const textContent = await page.getTextContent();
+      const text = textContent.items.map(item => item.str).join(" ");
+      state.textCache.set(pageNumber, text);
+      return text;
+    }
+
+    async function searchText() {
+      if (!state.pdfDoc) return;
+
+      const term = els.searchInput.value.trim();
+      if (!term) {
+        showToast("검색어를 입력하세요.");
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const start = term === state.lastSearch ? state.searchPage + 1 : state.pageNum;
+        state.lastSearch = term;
+
+        for (let i = 0; i < state.pageCount; i++) {
+          const pageNumber = ((start - 1 + i) % state.pageCount) + 1;
+          const text = await getPageText(pageNumber);
+          if (text.toLowerCase().includes(term.toLowerCase())) {
+            state.searchPage = pageNumber;
+            queueRenderPage(pageNumber);
+            showToast(`"${term}" 검색 결과: ${pageNumber}쪽`);
+            return;
+          }
+        }
+
+        showToast(`"${term}"를 찾지 못했습니다.`);
+      } catch (error) {
+        console.error(error);
+        showToast("검색 중 문제가 생겼습니다. 스캔 PDF는 검색이 안 될 수 있습니다.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function printAll() {
+      if (!state.fileUrl) return;
+
+      const frame = els.printFrame;
+      frame.onload = () => {
+        try {
+          frame.contentWindow.focus();
+          frame.contentWindow.print();
+          showToast("인쇄 창을 열었습니다.");
+        } catch (error) {
+          showToast("브라우저가 자동 인쇄를 막았습니다. PDF를 새 탭에서 열어 인쇄해 주세요.");
+          window.open(state.fileUrl, "_blank");
+        }
+      };
+      frame.src = state.fileUrl;
+    }
+
+    function printCurrentPage() {
+      if (!state.pdfDoc) return;
+
+      const image = els.canvas.toDataURL("image/png");
+      const printWindow = window.open("", "_blank", "width=900,height=700");
+      if (!printWindow) {
+        showToast("팝업이 차단되었습니다. 팝업 허용 후 다시 시도하세요.");
+        return;
+      }
+
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="ko">
+        <head>
+          <meta charset="UTF-8">
+          <title>현재 페이지 인쇄</title>
+          <style>
+            html, body {
+              margin: 0;
+              background: #fff;
+            }
+            img {
+              display: block;
+              max-width: 100%;
+              width: 100%;
+              height: auto;
+            }
+            @page {
+              margin: 10mm;
+            }
+          </style>
+        </head>
+        <body>
+          <img src="${image}" alt="PDF page ${state.pageNum}">
+          <script>
+            window.onload = function() {
+              window.focus();
+              window.print();
+            };
+          <\/script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+
+    function resetViewer(showMessage = true) {
+      if (state.fileUrl) URL.revokeObjectURL(state.fileUrl);
+
+      state.pdfDoc = null;
+      state.file = null;
+      state.fileUrl = null;
+      state.fileName = "";
+      state.pageNum = 1;
+      state.pageCount = 0;
+      state.scale = 1;
+      state.rotation = 0;
+      state.textCache.clear();
+
+      els.fileInput.value = "";
+      els.pageInput.value = 1;
+      els.pageCountText.textContent = "/ 0";
+      els.zoomSelect.value = "1";
+      els.searchInput.value = "";
+      els.thumbnailList.innerHTML = "";
+      els.canvasShell.style.display = "none";
+      els.dropZone.style.display = "flex";
+      els.docInfo.innerHTML = "아직 열린 PDF가 없습니다.<br />파일을 선택하거나 오른쪽 영역에 끌어다 놓으세요.";
+      setStatus("PDF 파일을 열어주세요.");
+      enableControls(false);
+
+      if (showMessage) showToast("초기화했습니다.");
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        els.viewer.requestFullscreen?.();
+      } else {
+        document.exitFullscreen?.();
+      }
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark");
+      localStorage.setItem("pdfViewerDarkMode", document.body.classList.contains("dark") ? "1" : "0");
+      els.darkBtn.textContent = document.body.classList.contains("dark") ? "라이트모드" : "다크모드";
+    }
+
+    function setupEvents() {
+      els.fileInput.addEventListener("change", event => {
+        const file = event.target.files?.[0];
+        if (file) loadPdf(file);
+      });
+
+      els.resetBtn.addEventListener("click", () => resetViewer(true));
+      els.prevBtn.addEventListener("click", goPrev);
+      els.nextBtn.addEventListener("click", goNext);
+
+      els.pageInput.addEventListener("change", () => {
+        queueRenderPage(els.pageInput.value);
+      });
+
+      els.zoomOutBtn.addEventListener("click", () => zoomBy(-0.15));
+      els.zoomInBtn.addEventListener("click", () => zoomBy(0.15));
+
+      els.zoomSelect.addEventListener("change", () => {
+        if (!state.pdfDoc) return;
+        if (els.zoomSelect.value !== "fit") {
+          state.scale = Number(els.zoomSelect.value);
+        }
+        renderPage(state.pageNum);
+      });
+
+      els.rotateBtn.addEventListener("click", () => {
+        state.rotation = (state.rotation + 90) % 360;
+        renderPage(state.pageNum);
+      });
+
+      els.fullscreenBtn.addEventListener("click", toggleFullscreen);
+      els.printBtn.addEventListener("click", printAll);
+      els.printPageBtn.addEventListener("click", printCurrentPage);
+      els.searchBtn.addEventListener("click", searchText);
+      els.searchInput.addEventListener("keydown", event => {
+        if (event.key === "Enter") searchText();
+      });
+
+      els.darkBtn.addEventListener("click", toggleDarkMode);
+
+      ["dragenter", "dragover"].forEach(type => {
+        els.viewer.addEventListener(type, event => {
+          event.preventDefault();
+          els.dropZone.classList.add("dragover");
+        });
+      });
+
+      ["dragleave", "drop"].forEach(type => {
+        els.viewer.addEventListener(type, event => {
+          event.preventDefault();
+          els.dropZone.classList.remove("dragover");
+        });
+      });
+
+      els.viewer.addEventListener("drop", event => {
+        const file = event.dataTransfer.files?.[0];
+        if (file) loadPdf(file);
+      });
+
+      window.addEventListener("resize", () => {
+        if (state.pdfDoc && els.zoomSelect.value === "fit") {
+          renderPage(state.pageNum);
+        }
+      });
+
+      document.addEventListener("keydown", event => {
+        if (!state.pdfDoc) {
+          if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "o") {
+            event.preventDefault();
+            els.fileInput.click();
+          }
+          return;
+        }
+
+        const active = document.activeElement;
+        const typing = active && ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName);
+
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "o") {
+          event.preventDefault();
+          els.fileInput.click();
+        }
+
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "p") {
+          event.preventDefault();
+          printAll();
+        }
+
+        if (typing) return;
+
+        if (event.key === "ArrowLeft") goPrev();
+        if (event.key === "ArrowRight") goNext();
+        if (event.key === "+" || event.key === "=") zoomBy(0.15);
+        if (event.key === "-") zoomBy(-0.15);
+      });
+    }
+
+    function init() {
+      if (localStorage.getItem("pdfViewerDarkMode") === "1") {
+        document.body.classList.add("dark");
+        els.darkBtn.textContent = "라이트모드";
+      }
+      setupEvents();
+      enableControls(false);
+    }
+
+    init();
+  </script>
+</body>
+</html>
