@@ -2,9 +2,10 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
 
-  <title>QR 코드 스캐너</title>
+  <title>초고속 QR 코드 스캐너</title>
 
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
@@ -13,67 +14,106 @@
       box-sizing: border-box;
     }
 
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
+      width: 100%;
+      min-height: 100%;
       font-family: Arial, sans-serif;
-      background: #f4f7fb;
-      color: #111;
+      background: #f3f6fb;
+      color: #111827;
+    }
+
+    body {
       text-align: center;
     }
 
     header {
-      padding: 24px 16px 10px;
+      padding: 14px 10px 6px;
     }
 
     h1 {
       margin: 0;
-      font-size: 26px;
+      font-size: 25px;
+      font-weight: 800;
     }
 
     .sub {
-      margin-top: 8px;
-      color: #666;
-      font-size: 14px;
+      margin-top: 6px;
+      font-size: 13px;
+      color: #6b7280;
     }
 
     main {
       width: 100%;
-      max-width: 520px;
+      max-width: 760px;
       margin: 0 auto;
-      padding: 16px;
+      padding: 8px;
     }
 
     #reader {
       width: 100%;
-      min-height: 320px;
+      height: 72vh;
+      min-height: 430px;
+      max-height: 850px;
       background: #000;
       border-radius: 18px;
       overflow: hidden;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      box-shadow: 0 10px 28px rgba(0,0,0,0.18);
+    }
+
+    #reader video {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: contain !important;
+      background: #000 !important;
+    }
+
+    #reader__scan_region {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    #reader__scan_region img {
+      display: none !important;
+    }
+
+    #reader__dashboard {
+      display: none !important;
+    }
+
+    #reader__scan_region > video {
+      border-radius: 18px;
+    }
+
+    .control-box {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
     }
 
     select {
       width: 100%;
-      margin-top: 14px;
-      padding: 12px;
-      border-radius: 12px;
-      border: 1px solid #ddd;
+      padding: 13px;
+      border-radius: 13px;
+      border: 1px solid #d1d5db;
+      background: white;
       font-size: 15px;
     }
 
     .buttons {
-      display: flex;
-      gap: 10px;
-      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
     }
 
     button {
-      flex: 1;
       border: none;
-      border-radius: 12px;
-      padding: 14px 12px;
+      border-radius: 14px;
+      padding: 15px 10px;
       font-size: 16px;
-      font-weight: bold;
+      font-weight: 800;
       cursor: pointer;
     }
 
@@ -84,41 +124,48 @@
 
     #stopBtn {
       background: #e5e7eb;
-      color: #111;
+      color: #111827;
+    }
+
+    #startBtn:disabled {
+      background: #93c5fd;
+      cursor: not-allowed;
     }
 
     .result-box {
-      margin-top: 18px;
-      padding: 16px;
+      margin-top: 10px;
+      padding: 14px;
       background: white;
       border-radius: 16px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      box-shadow: 0 5px 16px rgba(0,0,0,0.08);
       text-align: left;
       word-break: break-all;
     }
 
     .label {
       font-size: 13px;
-      color: #777;
-      margin-bottom: 8px;
+      color: #6b7280;
+      margin-bottom: 7px;
     }
 
     #result {
-      font-size: 16px;
-      font-weight: bold;
-      color: #111;
+      font-size: 17px;
+      font-weight: 800;
+      color: #111827;
+      line-height: 1.45;
     }
 
     #openLink,
     #copyBtn {
       display: none;
       width: 100%;
-      margin-top: 10px;
+      margin-top: 9px;
       text-decoration: none;
       text-align: center;
-      border-radius: 12px;
+      border-radius: 13px;
       padding: 13px;
-      font-weight: bold;
+      font-weight: 800;
+      font-size: 15px;
     }
 
     #openLink {
@@ -128,61 +175,99 @@
 
     #copyBtn {
       background: #facc15;
-      color: #111;
+      color: #111827;
     }
 
     .tip {
-      margin-top: 14px;
-      font-size: 13px;
-      color: #666;
+      margin: 10px 0 4px;
+      font-size: 12px;
+      color: #6b7280;
       line-height: 1.5;
+    }
+
+    @media (max-width: 480px) {
+      header {
+        padding-top: 10px;
+      }
+
+      h1 {
+        font-size: 23px;
+      }
+
+      main {
+        padding: 6px;
+      }
+
+      #reader {
+        height: 74vh;
+        min-height: 440px;
+        border-radius: 16px;
+      }
+
+      button {
+        padding: 14px 8px;
+      }
+    }
+
+    @media (orientation: landscape) {
+      #reader {
+        height: 82vh;
+        min-height: 320px;
+      }
+
+      header {
+        display: none;
+      }
     }
   </style>
 </head>
 
 <body>
   <header>
-    <h1>QR 코드 스캐너</h1>
-    <div class="sub">스마트폰 카메라로 QR코드를 인식합니다</div>
+    <h1>초고속 QR 코드 스캐너</h1>
+    <div class="sub">큰 QR도 잘 보이도록 카메라 화면을 크게 만들었습니다</div>
   </header>
 
   <main>
     <div id="reader"></div>
 
-    <select id="cameraSelect">
-      <option value="">카메라를 불러오는 중...</option>
-    </select>
+    <div class="control-box">
+      <select id="cameraSelect">
+        <option value="">카메라 자동 선택</option>
+      </select>
 
-    <div class="buttons">
-      <button id="startBtn">스캔 시작</button>
-      <button id="stopBtn">스캔 중지</button>
+      <div class="buttons">
+        <button id="startBtn">스캔 시작</button>
+        <button id="stopBtn">스캔 중지</button>
+      </div>
     </div>
 
     <div class="result-box">
       <div class="label">스캔 결과</div>
-      <div id="result">스캔 시작 버튼을 눌러주세요.</div>
-      <a id="openLink" target="_blank" rel="noopener noreferrer">링크 열기</a>
+      <div id="result">스캔 시작을 눌러주세요.</div>
+      <a id="openLink" target="_blank" rel="noopener noreferrer">링크 바로 열기</a>
       <button id="copyBtn">결과 복사</button>
     </div>
 
     <div class="tip">
-      카메라 권한을 허용해야 작동합니다.<br>
-      iPhone은 Safari, Android는 Chrome에서 테스트하세요.
+      QR코드의 네모난 모서리 표시 3개가 화면 안에 들어와야 인식됩니다.<br>
+      너무 가까우면 살짝 뒤로 물러나세요.
     </div>
   </main>
 
   <script>
     const readerId = "reader";
-    const qrScanner = new Html5Qrcode(readerId);
+    const qrScanner = new Html5Qrcode(readerId, { verbose: false });
 
+    const cameraSelect = document.getElementById("cameraSelect");
     const startBtn = document.getElementById("startBtn");
     const stopBtn = document.getElementById("stopBtn");
     const resultEl = document.getElementById("result");
     const openLink = document.getElementById("openLink");
     const copyBtn = document.getElementById("copyBtn");
-    const cameraSelect = document.getElementById("cameraSelect");
 
     let isScanning = false;
+    let alreadyDetected = false;
     let lastResult = "";
 
     function isUrl(text) {
@@ -207,6 +292,59 @@
       }
     }
 
+    function vibrateOnce() {
+      if (navigator.vibrate) {
+        navigator.vibrate(80);
+      }
+    }
+
+    function getFastConfig() {
+      const config = {
+        fps: 30,
+        disableFlip: true,
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true
+        }
+      };
+
+      if (typeof Html5QrcodeSupportedFormats !== "undefined") {
+        config.formatsToSupport = [Html5QrcodeSupportedFormats.QR_CODE];
+      }
+
+      /*
+        qrbox를 일부러 넣지 않았습니다.
+        이유: qrbox를 넣으면 가운데 작은 영역만 읽습니다.
+        큰 QR코드는 화면 전체를 읽는 방식이 더 유리합니다.
+      */
+
+      return config;
+    }
+
+    function getFallbackConfig() {
+      return {
+        fps: 15,
+        disableFlip: true
+      };
+    }
+
+    function getSelectedCameraConfig() {
+      const cameraId = cameraSelect.value;
+
+      if (cameraId) {
+        return {
+          deviceId: { exact: cameraId },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        };
+      }
+
+      return {
+        facingMode: { ideal: "environment" },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      };
+    }
+
     async function loadCameras() {
       try {
         const cameras = await Html5Qrcode.getCameras();
@@ -214,96 +352,119 @@
         cameraSelect.innerHTML = "";
 
         if (!cameras || cameras.length === 0) {
-          cameraSelect.innerHTML = "<option value=''>카메라를 찾을 수 없습니다</option>";
-          resultEl.textContent = "카메라를 찾을 수 없습니다. 브라우저 권한을 확인하세요.";
+          cameraSelect.innerHTML = "<option value=''>카메라 자동 선택</option>";
+          resultEl.textContent = "카메라를 찾지 못했습니다. 권한을 허용한 뒤 새로고침하세요.";
           return;
         }
+
+        let backCameraIndex = cameras.length - 1;
 
         cameras.forEach((camera, index) => {
           const option = document.createElement("option");
           option.value = camera.id;
-          option.textContent = camera.label || `카메라 ${index + 1}`;
 
-          const label = (camera.label || "").toLowerCase();
+          const label = camera.label || `카메라 ${index + 1}`;
+          option.textContent = label;
+
+          const lowerLabel = label.toLowerCase();
 
           if (
-            label.includes("back") ||
-            label.includes("rear") ||
-            label.includes("environment") ||
-            label.includes("후면")
+            lowerLabel.includes("back") ||
+            lowerLabel.includes("rear") ||
+            lowerLabel.includes("environment") ||
+            lowerLabel.includes("후면")
           ) {
-            option.selected = true;
+            backCameraIndex = index;
           }
 
           cameraSelect.appendChild(option);
         });
 
-        // 이름이 안 보이는 경우 보통 마지막 카메라가 후면인 경우가 많음
-        if (!cameraSelect.value && cameras.length > 1) {
-          cameraSelect.selectedIndex = cameras.length - 1;
-        }
-
+        cameraSelect.selectedIndex = backCameraIndex;
         resultEl.textContent = "카메라 준비 완료. 스캔 시작을 눌러주세요.";
       } catch (error) {
-        resultEl.textContent = "카메라 권한이 필요합니다. 권한을 허용한 뒤 새로고침하세요.";
-        console.error(error);
+        cameraSelect.innerHTML = "<option value=''>카메라 자동 선택</option>";
+        resultEl.textContent = "스캔 시작을 누른 뒤 카메라 권한을 허용하세요.";
       }
     }
 
     async function startScanner() {
       if (isScanning) return;
 
-      const cameraId = cameraSelect.value;
+      alreadyDetected = false;
+      startBtn.disabled = true;
+      resultEl.textContent = "카메라를 여는 중입니다...";
 
-      if (!cameraId) {
-        resultEl.textContent = "사용할 카메라가 없습니다. 새로고침 후 권한을 허용하세요.";
-        return;
-      }
-
-      const config = {
-        fps: 10,
-        qrbox: function(viewfinderWidth, viewfinderHeight) {
-          const size = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.7);
-          return { width: size, height: size };
-        }
-      };
+      openLink.style.display = "none";
+      copyBtn.style.display = "none";
 
       try {
-        resultEl.textContent = "카메라를 여는 중입니다...";
-
         await qrScanner.start(
-          cameraId,
-          config,
+          getSelectedCameraConfig(),
+          getFastConfig(),
           async function(decodedText) {
-            showResult(decodedText);
+            if (alreadyDetected) return;
 
-            if (isScanning) {
-              await stopScanner();
-            }
+            alreadyDetected = true;
+            showResult(decodedText);
+            vibrateOnce();
+
+            await stopScanner("인식 완료!");
           },
           function() {
-            // QR 인식 실패 프레임은 무시
+            // QR이 없는 프레임은 무시합니다. 그래야 속도가 빠릅니다.
           }
         );
 
         isScanning = true;
-        resultEl.textContent = "QR코드를 카메라 중앙에 맞춰주세요.";
-      } catch (error) {
-        resultEl.textContent = "카메라 실행 실패: 권한, 브라우저, HTTPS 주소를 확인하세요.";
-        console.error(error);
+
+        if (!alreadyDetected) {
+          resultEl.textContent = "QR코드를 화면 안에 크게 맞춰주세요.";
+        }
+      } catch (firstError) {
+        try {
+          await qrScanner.start(
+            { facingMode: "environment" },
+            getFallbackConfig(),
+            async function(decodedText) {
+              if (alreadyDetected) return;
+
+              alreadyDetected = true;
+              showResult(decodedText);
+              vibrateOnce();
+
+              await stopScanner("인식 완료!");
+            },
+            function() {}
+          );
+
+          isScanning = true;
+
+          if (!alreadyDetected) {
+            resultEl.textContent = "QR코드를 화면 안에 크게 맞춰주세요.";
+          }
+        } catch (secondError) {
+          resultEl.textContent = "카메라 실행 실패. Safari/Chrome에서 열고 카메라 권한을 허용하세요.";
+          console.error(secondError);
+        }
       }
+
+      startBtn.disabled = false;
     }
 
-    async function stopScanner() {
+    async function stopScanner(message = "스캔이 중지되었습니다.") {
       if (!isScanning) return;
 
       try {
         await qrScanner.stop();
-        await qrScanner.clear();
-        isScanning = false;
-        resultEl.textContent = "스캔이 중지되었습니다.";
       } catch (error) {
         console.error(error);
+      }
+
+      isScanning = false;
+
+      if (!lastResult) {
+        resultEl.textContent = message;
       }
     }
 
@@ -322,9 +483,12 @@
     });
 
     startBtn.addEventListener("click", startScanner);
-    stopBtn.addEventListener("click", stopScanner);
 
-    loadCameras();
+    stopBtn.addEventListener("click", async () => {
+      await stopScanner("스캔이 중지되었습니다.");
+    });
+
+    window.addEventListener("load", loadCameras);
   </script>
 </body>
 </html>
