@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QR 코드 스캐너</title>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      color: #222;
+      text-align: center;
+    }
+
+    header {
+      padding: 24px 16px 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 26px;
+    }
+
+    .sub {
+      margin-top: 8px;
+      color: #666;
+      font-size: 14px;
+    }
+
+    main {
+      width: 100%;
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    #reader {
+      width: 100%;
+      min-height: 320px;
+      background: #000;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    button {
+      flex: 1;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 12px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #startBtn {
+      background: #2563eb;
+      color: white;
+    }
+
+    #stopBtn {
+      background: #e5e7eb;
+      color: #111;
+    }
+
+    .result-box {
+      margin-top: 18px;
+      padding: 16px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      text-align: left;
+      word-break: break-all;
+    }
+
+    .label {
+      font-size: 13px;
+      color: #777;
+      margin-bottom: 8px;
+    }
+
+    #result {
+      font-size: 16px;
+      font-weight: bold;
+      color: #111;
+    }
+
+    #openLink,
+    #copyBtn {
+      display: none;
+      width: 100%;
+      margin-top: 10px;
+      text-decoration: none;
+      text-align: center;
+      border-radius: 12px;
+      padding: 13px;
+      font-weight: bold;
+    }
+
+    #openLink {
+      background: #16a34a;
+      color: white;
+    }
+
+    #copyBtn {
+      background: #facc15;
+      color: #111;
+    }
+
+    .tip {
+      margin-top: 14px;
+      font-size: 13px;
+      color: #666;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>QR 코드 스캐너</h1>
+    <div class="sub">스마트폰 카메라로 QR코드를 인식합니다</div>
+  </header>
+
+  <main>
+    <div id="reader"></div>
+
+    <div class="buttons">
+      <button id="startBtn">스캔 시작</button>
+      <button id="stopBtn">스캔 중지</button>
+    </div>
+
+    <div class="result-box">
+      <div class="label">스캔 결과</div>
+      <div id="result">아직 스캔된 QR코드가 없습니다.</div>
+      <a id="openLink" target="_blank" rel="noopener noreferrer">링크 열기</a>
+      <button id="copyBtn">결과 복사</button>
+    </div>
+
+    <div class="tip">
+      카메라 권한을 허용해야 작동합니다.<br>
+      iPhone은 Safari, Android는 Chrome에서 먼저 테스트해보세요.
+    </div>
+  </main>
+
+  <script>
+    const readerId = "reader";
+    const qrScanner = new Html5Qrcode(readerId);
+
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const resultEl = document.getElementById("result");
+    const openLink = document.getElementById("openLink");
+    const copyBtn = document.getElementById("copyBtn");
+
+    let isScanning = false;
+    let lastResult = "";
+
+    function isUrl(text) {
+      try {
+        const url = new URL(text);
+        return url.protocol === "http:" || url.protocol === "https:";
+      } catch {
+        return false;
+      }
+    }
+
+    function showResult(text) {
+      lastResult = text;
+      resultEl.textContent = text;
+      copyBtn.style.display = "block";
+
+      if (isUrl(text)) {
+        openLink.href = text;
+        openLink.style.display = "block";
+      } else {
+        openLink.style.display = "none";
+      }
+    }
+
+    async function startScanner() {
+      if (isScanning) return;
+
+      resultEl.textContent = "카메라를 준비하는 중입니다...";
+
+      const config = {
+        fps: 10,
+        qrbox: function(viewfinderWidth, viewfinderHeight) {
+          const size = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.7);
+          return { width: size, height: size };
+        },
+        aspectRatio: 1.0
+      };
+
+      try {
+        await qrScanner.start(
+          { facingMode: "environment" },
+          config,
+          async (decodedText) => {
+            showResult(decodedText);
+
+            // 한 번 인식하면 자동으로 멈춤
+            if (isScanning) {
+              await stopScanner();
+            }
+          },
+          () => {
+            // 인식 실패 프레임은 조용히 무시
+          }
+        );
+
+        isScanning = true;
+        resultEl.textContent = "QR코드를 카메라 중앙에 맞춰주세요.";
+      } catch (error) {
+        resultEl.textContent = "카메라를 열 수 없습니다. 권한 또는 HTTPS 접속을 확인하세요.";
+        console.error(error);
+      }
+    }
+
+    async function stopScanner() {
+      if (!isScanning) return;
+
+      try {
+        await qrScanner.stop();
+        await qrScanner.clear();
+        isScanning = false;
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    startBtn.addEventListener("click", startScanner);
+    stopBtn.addEventListener("click", stopScanner);
+
+    copyBtn.addEventListener("click", async () => {
+      if (!lastResult) return;
+
+      try {
+        await navigator.clipboard.writeText(lastResult);
+        copyBtn.textContent = "복사 완료!";
+        setTimeout(() => {
+          copyBtn.textContent = "결과 복사";
+        }, 1200);
+      } catch {
+        alert("복사에 실패했습니다.");
+      }
+    });
+  </script>
+</body>
+</html>
